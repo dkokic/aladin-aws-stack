@@ -1,10 +1,14 @@
 (ns stack
-  (:require [cheshire.core :as cheshire]))
+  (:require [cheshire.core :as cheshire]
+            [clojure.pprint]))
 
-(def docdb-resource-cluster-name "MyDbCluster")
-(def docdb-resource-instance-name "MyDBInstance")
+(def res-docdb-cluster "DocDbCluster")
+(def res-docdb-instance "DocDbInstance")
+(def res-docdb-cluster-paramgroup "DocDbClusterParamGroup")
+
 (def docdb-cluster-name "MyCluster")
 (def docdb-instance-name "MyDocDbInstance")
+(def docdb-cluster-paramgroup-name "MyClusterParameterGroup")
 (def docdb-master-username "admin1234567890")
 (def docdb-master-password "admin1234567890")
 
@@ -12,26 +16,38 @@
 (def docdb-instance-class "db.t3.medium")
 
 (def stack
-  {
-   "Resources" {
-                docdb-resource-cluster-name  {
+  {"Resources" {
+                res-docdb-cluster-paramgroup {
+                                              "Type"       "AWS::DocDB::DBClusterParameterGroup"
+                                              "Properties" {
+                                                            "Description" "description"
+                                                            "Family"      "docdb4.0"
+                                                            "Name"        docdb-cluster-paramgroup-name
+                                                            "Parameters"  {
+                                                                           "tls" "disabled"
+                                                                           }
+                                                            }
+                                              }
+                res-docdb-cluster            {
                                               "Type"           "AWS::DocDB::DBCluster"
                                               "DeletionPolicy" "Delete"
                                               "Properties"     {
-                                                                "DBClusterIdentifier" docdb-cluster-name
-                                                                "MasterUsername"      docdb-master-username
-                                                                "MasterUserPassword"  docdb-master-password
-                                                                "EngineVersion"       "4.0.0"
+                                                                "DBClusterIdentifier"         docdb-cluster-name
+                                                                "DBClusterParameterGroupName" {"Ref" res-docdb-cluster-paramgroup}
+                                                                "MasterUsername"              docdb-master-username
+                                                                "MasterUserPassword"          docdb-master-password
+                                                                "EngineVersion"               "4.0.0"
                                                                 }
+                                              "DependsOn"      res-docdb-cluster-paramgroup
                                               }
-                docdb-resource-instance-name {
+                res-docdb-instance           {
                                               "Type"       "AWS::DocDB::DBInstance"
                                               "Properties" {
-                                                            "DBClusterIdentifier" {"Ref" docdb-cluster-name}
+                                                            "DBClusterIdentifier"  {"Ref" res-docdb-cluster}
                                                             "DBInstanceIdentifier" docdb-instance-name
                                                             "DBInstanceClass"      docdb-instance-class
                                                             }
-                                              "DependsOn"  docdb-resource-cluster-name
+                                              "DependsOn"  res-docdb-cluster
                                               }
                 }
    })
