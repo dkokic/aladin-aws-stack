@@ -1,0 +1,4 @@
+{:deps {
+        org.clojure/data.json {:mvn/version "1.0.0"}
+        cheshire/cheshire {:mvn/version "5.10.0"}
+        }}

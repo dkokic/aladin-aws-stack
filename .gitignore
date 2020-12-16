@@ -1,0 +1,6 @@
+.cpcache/
+.idea/
+*.iml
+
+# ignore output
+stack.json
