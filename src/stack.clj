@@ -1,58 +1,37 @@
 (ns stack
   (:require [cheshire.core :as cheshire]
-            [clojure.pprint]))
+            [clojure.pprint]
+            [ecr]
+            [documentdb]))
 
-(def res-docdb-cluster "DocDbCluster")
-(def res-docdb-instance "DocDbInstance")
-(def res-docdb-cluster-paramgroup "DocDbClusterParamGroup")
-
+; DocumentDB
+(def res-docdb-cluster "MyDocDbCluster")
+(def res-docdb-instance "MyDocDbInstance")
+(def res-docdb-cluster-paramgroup "MyDocDbClusterParamGroup")
 (def docdb-cluster-name "MyCluster")
 (def docdb-instance-name "MyDocDbInstance")
+(def docdb-instance-class "db.t3.medium")
 (def docdb-cluster-paramgroup-name "MyClusterParameterGroup")
 (def docdb-master-username "admin1234567890")
 (def docdb-master-password "admin1234567890")
 
-; https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region
-(def docdb-instance-class "db.t3.medium")
+; ECR
+(def res-ecr "MyEcr")
+(def ecr-repo-name "my-ecr-repository")                     ; must be kebab-case
+(def ecr-user-arns ["arn:aws:iam::290183655974:user/dkokic", "arn:aws:iam::290183655974:user/tom"])
 
 (def stack
   {"Resources" {
-                res-docdb-cluster-paramgroup {
-                                              "Type"       "AWS::DocDB::DBClusterParameterGroup"
-                                              "Properties" {
-                                                            "Description" "description"
-                                                            "Family"      "docdb4.0"
-                                                            "Name"        docdb-cluster-paramgroup-name
-                                                            "Parameters"  {
-                                                                           "tls" "disabled"
-                                                                           }
-                                                            }
-                                              }
-                res-docdb-cluster            {
-                                              "Type"           "AWS::DocDB::DBCluster"
-                                              "DeletionPolicy" "Delete"
-                                              "Properties"     {
-                                                                "DBClusterIdentifier"         docdb-cluster-name
-                                                                "DBClusterParameterGroupName" {"Ref" res-docdb-cluster-paramgroup}
-                                                                "MasterUsername"              docdb-master-username
-                                                                "MasterUserPassword"          docdb-master-password
-                                                                "EngineVersion"               "4.0.0"
-                                                                }
-                                              "DependsOn"      res-docdb-cluster-paramgroup
-                                              }
-                res-docdb-instance           {
-                                              "Type"       "AWS::DocDB::DBInstance"
-                                              "Properties" {
-                                                            "DBClusterIdentifier"  {"Ref" res-docdb-cluster}
-                                                            "DBInstanceIdentifier" docdb-instance-name
-                                                            "DBInstanceClass"      docdb-instance-class
-                                                            }
-                                              "DependsOn"  res-docdb-cluster
-                                              }
+                res-docdb-cluster-paramgroup (documentdb/create-documentdb-cluster-paramgroup docdb-cluster-paramgroup-name)
+                res-docdb-cluster            (documentdb/create-documentdb-cluster docdb-cluster-name res-docdb-cluster-paramgroup
+                                                                                   docdb-master-username docdb-master-password)
+                res-docdb-instance           (documentdb/create-documentdb-instance res-docdb-cluster docdb-instance-name docdb-instance-class)
+                res-ecr                      (ecr/create-ecr ecr-repo-name ecr-user-arns)
                 }
    })
 
 (defn gen [args]
-  (let [output (cheshire/generate-string stack {:pretty true})]
+  (let [
+        output (cheshire/generate-string stack {:pretty true})]
     (clojure.pprint/pprint stack)
     (spit "stack.json" output)))
