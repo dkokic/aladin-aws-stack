@@ -1,5 +1,16 @@
 (ns documentdb)
 
+; subnet-ids: ["subnet-123", "subnet-456"]
+(defn create-documentdb-subnet-group [name description subnet-ids]
+  {
+   "Type" "AWS::DocDB::DBSubnetGroup"
+   "Properties" {
+                 "DBSubnetGroupName" name
+                 "DBSubnetGroupDescription" description
+                 "SubnetIds" subnet-ids
+                 }
+   })
+
 (defn create-documentdb-cluster-paramgroup [paramgroup-name]
   {
    "Type"       "AWS::DocDB::DBClusterParameterGroup"
@@ -13,18 +24,22 @@
                  }
    })
 
-(defn create-documentdb-cluster [cluster-name paramgroup-resource-name master-username master-password]
+(defn create-documentdb-cluster [security-group-resource-id documentdb-subnet-group-resource-id
+                                 cluster-name paramgroup-resource-name master-username master-password]
   {
    "Type"           "AWS::DocDB::DBCluster"
    "DeletionPolicy" "Delete"
    "Properties"     {
                      "DBClusterIdentifier"         cluster-name
                      "DBClusterParameterGroupName" {"Ref" paramgroup-resource-name}
+                     "DBSubnetGroupName" {"Ref" documentdb-subnet-group-resource-id}
                      "MasterUsername"              master-username
                      "MasterUserPassword"          master-password
                      "EngineVersion"               "4.0.0"
+                     "Port" 27017
+                     "VpcSecurityGroupIds"         [{"Ref" security-group-resource-id}]
                      }
-   "DependsOn"      paramgroup-resource-name
+   "DependsOn"      [security-group-resource-id documentdb-subnet-group-resource-id paramgroup-resource-name]
    })
 
 ; instance-class: one of https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region
